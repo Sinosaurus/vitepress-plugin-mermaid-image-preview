@@ -1,6 +1,6 @@
 {
   "name": "vitepress-plugin-mermaid-image-preview",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mermaid and image previews for VitePress, with zoom, pan and touch gestures.",
   "keywords": [
     "diagram",
@@ -29,7 +29,8 @@
     "url": "git+https://github.com/Sinosaurus/vitepress-plugin-mermaid-image-preview.git"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "type": "module",
   "sideEffects": [
