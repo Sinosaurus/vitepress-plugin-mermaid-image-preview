@@ -1,16 +1,26 @@
 import type { MermaidConfig } from 'mermaid';
+import type { InjectionKey } from 'vue';
+
+export type MermaidThemeConfig = Pick<MermaidConfig, 'theme' | 'themeVariables'>;
+export const mermaidThemeKey: InjectionKey<MermaidThemeConfig> = Symbol('iris-mermaid-theme');
 
 let pending: Promise<unknown> = Promise.resolve();
 
 /** Mermaid has global configuration: serialize configuration and rendering together. */
-export function renderDiagram(id: string, graph: string, dark: boolean): Promise<string> {
+export function renderDiagram(
+  id: string,
+  graph: string,
+  dark: boolean,
+  themeConfig: MermaidThemeConfig = {},
+): Promise<string> {
   const result = pending.then(async () => {
     const { default: mermaid } = await import('mermaid');
     const config: MermaidConfig = {
       startOnLoad: false,
       securityLevel: 'strict',
       suppressErrorRendering: true,
-      theme: dark ? 'dark' : 'default',
+      theme: themeConfig.theme ?? (dark ? 'dark' : 'default'),
+      themeVariables: themeConfig.themeVariables,
     };
     mermaid.initialize(config);
     const { svg } = await mermaid.render(id, graph);

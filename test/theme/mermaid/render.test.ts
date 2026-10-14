@@ -36,3 +36,21 @@ test('theme configuration and rendering stay serialized, and an error does not p
     expect.objectContaining({ securityLevel: 'strict', suppressErrorRendering: true }),
   );
 });
+
+test('custom themes are used in both modes without leaking into later default renders', async () => {
+  mocks.render.mockResolvedValue({ svg: '<svg/>' });
+  const config = { theme: 'base', themeVariables: { primaryColor: '#42b883' } } as const;
+  for (const dark of [false, true]) {
+    await renderDiagram('custom', 'flowchart LR; A-->B', dark, config);
+    expect(mocks.initialize).toHaveBeenLastCalledWith({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      suppressErrorRendering: true,
+      ...config,
+    });
+  }
+  await renderDiagram('default', 'flowchart LR; A-->B', false);
+  expect(mocks.initialize).toHaveBeenLastCalledWith(
+    expect.objectContaining({ theme: 'default', themeVariables: undefined }),
+  );
+});

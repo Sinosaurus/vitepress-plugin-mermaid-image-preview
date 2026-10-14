@@ -2,6 +2,9 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createApp, h, nextTick, ref } from 'vue';
 import type { App } from 'vue';
+import type { Theme } from 'vitepress';
+import { withIrisTheme } from '../../../src/theme';
+import type { MermaidThemeConfig } from '../../../src/theme';
 import { useData } from 'vitepress';
 import MermaidDiagram from '../../../src/theme/mermaid/MermaidDiagram.vue';
 
@@ -28,8 +31,11 @@ afterEach(() => {
   app?.unmount();
   document.body.innerHTML = '';
 });
-function mount() {
+function mount(mermaid?: MermaidThemeConfig) {
   app = createApp({ render: () => h(MermaidDiagram, { graph: graph.value }) });
+  withIrisTheme({}, { mermaid }).enhanceApp!({ app } as Parameters<
+    NonNullable<Theme['enhanceApp']>
+  >[0]);
   app.mount(document.getElementById('app')!);
 }
 
@@ -43,6 +49,7 @@ test('diagram source is decoded and dark mode triggers a new render', async () =
     expect.any(String),
     'flowchart LR; A-->B',
     false,
+    {},
   );
   useData().isDark.value = true;
   await nextTick();
@@ -50,6 +57,7 @@ test('diagram source is decoded and dark mode triggers a new render', async () =
     expect.any(String),
     'flowchart LR; A-->B',
     true,
+    {},
   );
 });
 
@@ -86,4 +94,27 @@ test('stale async render results cannot replace a newer diagram', async () => {
   complete('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>');
   await nextTick();
   expect(document.querySelector('img')!.src).toBe(source);
+});
+
+test('withIrisTheme passes custom Mermaid theme configuration to Markdown diagrams', async () => {
+  rendering.renderDiagram.mockResolvedValue(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200"/>',
+  );
+  const config = { theme: 'base', themeVariables: { primaryColor: '#42b883' } } as const;
+  mount(config);
+  await vi.waitFor(() => expect(document.querySelector('img')).not.toBeNull());
+  expect(rendering.renderDiagram).toHaveBeenLastCalledWith(
+    expect.any(String),
+    'flowchart LR; A-->B',
+    false,
+    config,
+  );
+  useData().isDark.value = true;
+  await nextTick();
+  expect(rendering.renderDiagram).toHaveBeenLastCalledWith(
+    expect.any(String),
+    'flowchart LR; A-->B',
+    true,
+    config,
+  );
 });

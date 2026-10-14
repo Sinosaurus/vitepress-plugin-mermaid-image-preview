@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useId, watch } from 'vue';
+import { computed, inject, onMounted, ref, useId, watch } from 'vue';
 import { useData } from 'vitepress';
-import { renderDiagram, svgImage } from './render';
+import { mermaidThemeKey, renderDiagram, svgImage } from './render';
 
 const props = defineProps<{ graph: string }>();
 const { isDark } = useData();
+const themeConfig = inject(mermaidThemeKey, {});
 const id = `mermaid-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
 const src = ref('');
 const error = ref('');
@@ -27,7 +28,7 @@ onMounted(() => {
         active = false;
       });
       try {
-        const svg = await renderDiagram(`${id}-${current}`, graph.value, isDark.value);
+        const svg = await renderDiagram(`${id}-${current}`, graph.value, isDark.value, themeConfig);
         if (!active) return;
         src.value = svgImage(svg);
         error.value = '';

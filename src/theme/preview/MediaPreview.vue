@@ -22,6 +22,8 @@ const enhanced = new Map<HTMLElement, Map<string, string | null>>();
 let previousFocus: HTMLElement | null = null;
 let observer: MutationObserver | undefined;
 let oldOverflow: string | undefined;
+let pressStart = { x: 0, y: 0 };
+let moved = false;
 
 function reset() {
   view.value = { scale: 1, x: 0, y: 0 };
@@ -55,6 +57,25 @@ function close() {
   dialog.value.close();
   closed();
 }
+function backgroundClick(event: MouseEvent) {
+  const target = event.target;
+  if (!(target instanceof Element) || target.closest('.iris-toolbar')) return;
+  if (!stage.value?.contains(target)) {
+    close();
+    return;
+  }
+  if (moved) return;
+  const box = stage.value?.querySelector('img')?.getBoundingClientRect();
+  if (
+    box &&
+    event.clientX >= box.left &&
+    event.clientX <= box.right &&
+    event.clientY >= box.top &&
+    event.clientY <= box.bottom
+  )
+    return;
+  close();
+}
 function activate(event: MouseEvent | KeyboardEvent) {
   const target = event.target;
   if (!(target instanceof Element)) return;
@@ -79,12 +100,17 @@ function wheel(event: WheelEvent) {
 }
 function down(event: PointerEvent) {
   if (event.button !== 0 || pointers.size >= 2) return;
+  if (!pointers.size) {
+    pressStart = { x: event.clientX, y: event.clientY };
+    moved = false;
+  } else moved = true;
   stage.value!.setPointerCapture(event.pointerId);
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   dragging.value = true;
 }
 function move(event: PointerEvent) {
   if (!pointers.has(event.pointerId)) return;
+  if (Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > 4) moved = true;
   const before = [...pointers.values()];
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   const box = stage.value!.getBoundingClientRect();
@@ -94,6 +120,7 @@ function move(event: PointerEvent) {
   });
 }
 function up(event: PointerEvent) {
+  if (event.type === 'pointercancel') moved = true;
   pointers.delete(event.pointerId);
   dragging.value = pointers.size > 0;
 }
@@ -185,7 +212,7 @@ onUnmounted(() => {
       aria-label="图像预览"
       @close="!dialog?.open && closed()"
       @keydown="key"
-      @click="$event.target === dialog && close()"
+      @click="backgroundClick"
     >
       <header class="iris-toolbar">
         <span class="iris-title">{{ label }}</span>
@@ -220,7 +247,7 @@ onUnmounted(() => {
           @error="failed = true"
         />
       </div>
-      <p class="iris-hint">滚轮 / 双指缩放 · 拖动或方向键平移 · 0 复位 · Esc 关闭</p>
+      <p class="iris-hint">滚轮 / 双指缩放 · 拖动或方向键平移 · 0 复位 · 点击背景 / Esc 关闭</p>
     </dialog>
   </Teleport>
 </template>
